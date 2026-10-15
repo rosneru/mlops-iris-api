@@ -1,0 +1,34 @@
+events {
+    worker_connections 1024; # Maximum number of connections per process
+}
+
+http {
+    # Group of backend servers (must be defined inside http, not inside server)
+    upstream iris-apis {
+        # Define API instances by their Docker Compose service name and
+        # internal port
+        server mlops-iris-api:8000;
+
+        # Optional -> Specify a strategy (default: Round Robin)
+        # least_conn; # For the Least Connections strategy
+        # ip_hash; # For IP Hash Strategy
+    }
+
+    # Defining our virtual server
+    server {
+        listen 80;
+        server_name localhost; # Domain name or IP that this server block manages
+
+        # All requests that start with /predict/ will be handled here
+        location /predict {
+            # proxy_pass: Redirects the request to the backend service
+            # http://iris-apis : 'iris-apis' is the upstream group defined above.
+            proxy_pass http://iris-apis;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}
